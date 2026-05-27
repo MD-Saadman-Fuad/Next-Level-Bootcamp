@@ -2,6 +2,7 @@ import { IncomingMessage, ServerResponse } from "http";
 import { insertProducts, readProducts } from "../service/product.service";
 import type { IProduct } from "../types/product.types";
 import { parseBody } from "../utility/parseBody";
+import { sendResponse } from "../utility/sendResponse";
 export const productController = async (
   req: IncomingMessage,
   res: ServerResponse,
@@ -20,12 +21,12 @@ export const productController = async (
   console.log(id);
 
   if (url === "/product/" && method === "GET") {
-    const products = readProducts();
-    res.writeHead(200, { "Content-Type": "application/json" });
-    console.log(products);
-    res.end(
-      JSON.stringify({ message: "this is product route", data: products }),
-    );
+    try{
+      const products = readProducts();
+      return sendResponse(res, 200, true, "Products Retrieved Successfully", products);
+    } catch (error) {
+      return sendResponse(res, 500, false, "Internal Server Error", null);
+    }
   } else if (
     method === "GET" &&
     urlParts &&
@@ -37,15 +38,10 @@ export const productController = async (
     const products = readProducts();
     const product = products.find((p: IProduct) => p.id === id);
     if (!product) {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "Product Not Found", data: null }));
-      return;
+      return sendResponse(res, 404, false, "Product Not Found", null);
     }
     // console.log(product);
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({ message: "this is product id route", data: product }),
-    );
+    sendResponse(res, 200, true, "Product Found", product);
   } else if (method === "POST" && url === "/product/") {
     const body = await parseBody(req);
     // console.log("Parsed Body:", body);
@@ -59,10 +55,7 @@ export const productController = async (
     // Handle POST request for creating a new product
     console.log("Updated Products List:", products);
     insertProducts(products);
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({ message: "Product Created Successfully", data: body }),
-    );
+    sendResponse(res, 200, true, "Product Created Successfully", body);
   }
 
   else if (method === "PUT" && id !== null) {
@@ -72,9 +65,9 @@ export const productController = async (
     // console.log("Product Index:", productIndex);
 
     if (productIndex < 0) {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "Product Not Found", data: null }));
-    } 
+      sendResponse(res, 404, false, "Product Not Found", null);
+      return;
+    }
 
     // console.log(products[productIndex]);
 
@@ -82,7 +75,7 @@ export const productController = async (
 
     insertProducts(products);
 
-    res.writeHead(200, { "Content-Type": "application/json" });
+    sendResponse(res, 200, true, "Product Updated Successfully", products[productIndex]);
     res.end(JSON.stringify({ message: "Product Updated Successfully", data: products[productIndex] }));
 
   }
@@ -91,8 +84,8 @@ export const productController = async (
     const products = readProducts();
     const productIndex = products.findIndex((p: IProduct) => p.id === id);
     if (productIndex < 0) {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "Product Not Found", data: null }));
+      sendResponse(res, 404, false, "Product Not Found", null);
+      return;
     }
     const deletedProduct = products.splice(productIndex, 1);
     insertProducts(products);
