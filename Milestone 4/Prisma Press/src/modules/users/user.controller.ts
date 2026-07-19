@@ -1,30 +1,27 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, RequestHandler, Response } from "express";
 import httpStatus from "http-status";
 import { userService } from "./user.service";
-const registerUser = async (req: Request, res: Response) => {
-  try{
+import { catchAsync } from "../../utils/catchAsync";
+import { sendResponse } from "../../utils/sendResponse";
+
+
+const registerUser = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
     const payload = req.body;
+    const user = await userService.registerUserIntoDB(payload);
 
-  const user = await userService.registerUserIntoDB(payload);
-
-  res.status(httpStatus.CREATED).json({
-    success: true,
-    success_code: httpStatus.CREATED,
-    message: "User registration endpoint",
-    data: {
-      user,
-    },
-  });
-  }
-  catch(error){
-    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      success_code: httpStatus.INTERNAL_SERVER_ERROR,
-      message: "Error registering user",
-      error: (error as Error).message,
+    sendResponse(res, {
+        success: true,
+        success_code: httpStatus.CREATED,
+        message: "User registered successfully",
+        data: {
+            user,
+        },
     });
-  }
-};
+
+
+  },
+);
 
 export const userController = {
   registerUser,
