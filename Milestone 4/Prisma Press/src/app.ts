@@ -7,6 +7,8 @@ import httpStatus from "http-status";
 import bcrypt from "bcryptjs";
 import { userRoutes } from "./modules/users/users.route";
 import { authRoutes } from "./modules/auth/auth.route";
+import { postRoutes } from "./modules/posts/posts.route";
+import { commentRoutes } from "./modules/comments/comments.routes";
 
 
 const app: Application = express();
@@ -25,5 +27,7 @@ app.get("/", async (req: Request, res: Response) => {
 
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/posts", postRoutes);
+app.use("/api/comments", commentRoutes);
 
 export default app;
