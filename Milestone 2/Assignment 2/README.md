@@ -89,7 +89,4 @@ DevPulse is a collaborative platform for software teams to report bugs, suggest 
    npm start
    ```
 
-7. **Run Verification Tests**:
-   ```bash
-   npx ts-node src/test-endpoints.ts
-   ```
+
