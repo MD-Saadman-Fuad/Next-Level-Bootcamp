@@ -15,6 +15,69 @@ const createPostInDB = async (payload: ICreatePostPayload, userId: string) => {
 const getAllPostsFromDB = async () => {
   const posts = await prisma.post.findMany({
     include: {
+      //Filtering / exact match without AND operator
+      // where: {
+      //   title: "Something",
+      //   content: "Something",
+      // }
+
+      //Filtering / exact match with AND operator
+      // where: {
+      //   AND: [{
+      //     title: "Something",
+      //   },
+      //   {
+      //     content: "Something",
+      //   }]
+      // }
+
+      // Searching / partial match with OR operator
+
+      // where: {
+      //   OR: [
+      //     {
+      //       title: {
+      //         contains: "Something",
+      //         mode: "insensitive",
+      //       },
+      //     },
+      //     {
+      //       content: {
+      //         contains: "Something",
+      //         mode: "insensitive",
+      //       },
+      //     },
+      //   ],
+      // },
+
+      //combining search (OR) and filter (AND) operators
+      where: {
+        AND: [
+          {
+            // Searching / partial match with OR operator
+            OR: [
+              {
+                title: {
+                  contains: "Something",
+                  mode: "insensitive",
+                },
+              },
+              {
+                content: {
+                  contains: "Something",
+                  mode: "insensitive",
+                },
+              }
+            ],
+          },
+          //filtering / exact match with AND operator
+          {
+            status: PostStatus.PUBLISHED,
+          }
+
+        ],
+      },
+
       author: {
         omit: {
           password: true,
@@ -179,7 +242,7 @@ const getPostsStatsFromDB = async () => {
       totalComments,
       totalApprovedComments,
       totalPendingComments,
-      totalPostViews : totalPostViews._sum.views,
+      totalPostViews: totalPostViews._sum.views,
     };
   });
   return transactionResult;
