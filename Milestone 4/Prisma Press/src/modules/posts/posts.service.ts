@@ -1,6 +1,11 @@
 import { CommentStatus, PostStatus } from "../../../generated/prisma/client";
+import { PostWhereInput } from "../../../generated/prisma/models";
 import { prisma } from "../../lib/prisma";
-import { ICreatePostPayload, IUpdatePostPayload } from "./post.interface";
+import {
+  ICreatePostPayload,
+  IPostQuery,
+  IUpdatePostPayload,
+} from "./post.interface";
 
 const createPostInDB = async (payload: ICreatePostPayload, userId: string) => {
   const result = await prisma.post.create({
@@ -12,72 +17,179 @@ const createPostInDB = async (payload: ICreatePostPayload, userId: string) => {
   return result;
 };
 
-const getAllPostsFromDB = async () => {
-  const posts = await prisma.post.findMany({
-    include: {
-      //Filtering / exact match without AND operator
-      // where: {
-      //   title: "Something",
-      //   content: "Something",
-      // }
+const getAllPostsFromDB = async (query: IPostQuery) => {
+  const limit = query.limit ? Number(query.limit) : 10;
+  const page = query.page ? Number(query.page) : 1;
+  const skip = (page - 1) * limit;
+  const sortBy = query.sortBy ? query.sortBy : "createdAt";
+  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
 
-      //Filtering / exact match with AND operator
-      // where: {
-      //   AND: [{
-      //     title: "Something",
-      //   },
-      //   {
-      //     content: "Something",
-      //   }]
-      // }
+  const tags = query.tags ? JSON.parse(query.tags as string) : null;
 
-      // Searching / partial match with OR operator
+  const tagsArray = Array.isArray(tags) ? tags : [];
 
-      // where: {
-      //   OR: [
-      //     {
-      //       title: {
-      //         contains: "Something",
-      //         mode: "insensitive",
-      //       },
-      //     },
-      //     {
-      //       content: {
-      //         contains: "Something",
-      //         mode: "insensitive",
-      //       },
-      //     },
-      //   ],
-      // },
+  const andConditions: PostWhereInput[] = [];
 
-      //combining search (OR) and filter (AND) operators
-      where: {
-        AND: [
-          {
-            // Searching / partial match with OR operator
-            OR: [
-              {
-                title: {
-                  contains: "Something",
-                  mode: "insensitive",
-                },
-              },
-              {
-                content: {
-                  contains: "Something",
-                  mode: "insensitive",
-                },
-              }
-            ],
+  if (query.searchterm) {
+    andConditions.push({
+      OR: [
+        {
+          title: {
+            contains: query.searchterm,
+            mode: "insensitive",
           },
-          //filtering / exact match with AND operator
-          {
-            status: PostStatus.PUBLISHED,
-          }
-
-        ],
+        },
+        {
+          content: {
+            contains: query.searchterm,
+            mode: "insensitive",
+          },
+        },
+      ],
+    });
+  }
+  if (query.title) {
+    andConditions.push({
+      title: query.title,
+    });
+  }
+  if (query.content) {
+    andConditions.push({
+      content: query.content,
+    });
+  }
+  if (query.status) {
+    andConditions.push({
+      status: query.status,
+    });
+  }
+  if (query.tags) {
+    andConditions.push({
+      tags: {
+        hasSome: tagsArray,
       },
+    });
+  }
 
+  const posts = await prisma.post.findMany({
+    //Filtering / exact match without AND operator
+    // where: {
+    //   title: "Something",
+    //   content: "Something",
+    // }
+
+    //Filtering / exact match with AND operator
+    // where: {
+    //   AND: [{
+    //     title: "Something",
+    //   },
+    //   {
+    //     content: "Something",
+    //   }]
+    // }
+
+    // Searching / partial match with OR operator
+
+    // where: {
+    //   OR: [
+    //     {
+    //       title: {
+    //         contains: "Something",
+    //         mode: "insensitive",
+    //       },
+    //     },
+    //     {
+    //       content: {
+    //         contains: "Something",
+    //         mode: "insensitive",
+    //       },
+    //     },
+    //   ],
+    // },
+
+    //combining search (OR) and filter (AND) operators
+    // where: {
+    //   AND: [
+    //     {
+    //       // Searching / partial match with OR operator
+    //       OR: [
+    //         {
+    //           title: {
+    //             contains: "Something",
+    //             mode: "insensitive",
+    //           },
+    //         },
+    //         {
+    //           content: {
+    //             contains: "Something",
+    //             mode: "insensitive",
+    //           },
+    //         }
+    //       ],
+    //     },
+    //     //filtering / exact match with AND operator
+    //     {
+    //       status: PostStatus.PUBLISHED,
+    //     }
+
+    //   ],
+    // },
+
+    //pagination
+    // take : 1,
+    // skip : 3, //visiting page 4
+
+    //page = 4, Skip = (page - 1) * limit = (4 - 1) * 10 = 30
+
+    //sorting
+    // orderBy : {
+    //   createdAt: "desc",
+    //   title: "asc",
+    //   content: "desc",
+    // },
+    //Dynamic searching and filtering with pagination and sorting
+    // where: {
+    //   AND: [
+    //     query.searchterm
+    //       ? {
+    //           OR: [
+    //             {
+    //               title: {
+    //                 contains: query.searchterm,
+    //                 mode: "insensitive",
+    //               },
+    //             },
+    //             {
+    //               content: {
+    //                 contains: query.searchterm,
+    //                 mode: "insensitive",
+    //               },
+    //             },
+    //           ],
+    //         }
+    //       : {},
+    //     //title filterfing
+
+    //     query.title ? { title: query.title } : {},
+    //     query.content ? { content: query.content } : {},
+    //     query.status ? { status: query.status } : {},
+    //     // query.tags ? { tags : { hasSome : query.tags } } : {},
+    //   ],
+    // },
+    // Dynamic pagination and sorting
+
+    where: {
+      AND: andConditions,
+    },
+
+    skip: skip,
+    take: limit,
+
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+
+    include: {
       author: {
         omit: {
           password: true,
