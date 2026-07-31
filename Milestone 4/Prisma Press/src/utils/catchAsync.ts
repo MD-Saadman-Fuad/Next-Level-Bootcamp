@@ -7,12 +7,13 @@ export const catchAsync = (fn: RequestHandler) => {
     try {
       await fn(req, res, next);
     } catch (error) {
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        success_code: httpStatus.INTERNAL_SERVER_ERROR,
-        // message: "Error registering user",
-        error: (error as Error).message,
-      });
+      // res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+      //   success: false,
+      //   success_code: httpStatus.INTERNAL_SERVER_ERROR,
+      //   // message: "Error registering user",
+      //   error: (error as Error).message,
+      // });
+      next(error);
     }
   };
 };
