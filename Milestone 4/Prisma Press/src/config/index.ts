@@ -12,4 +12,7 @@ export const config = {
   jwt_refresh_secret: process.env.JWT_REFRESH_TOKEN_SECRET!,
   jwt_access_expires_in: process.env.JWT_ACCESS_TOKEN_EXPIRATION!,
   jwt_refresh_expires_in: process.env.JWT_REFRESH_TOKEN_EXPIRATION!,
+  stripe_product_key: process.env.STRIPE_PRODUCT_ID!,
+  stripe_secret_key: process.env.STRIPE_SECRET_KEY!,
+
 };
