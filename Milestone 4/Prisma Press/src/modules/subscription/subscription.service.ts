@@ -2,6 +2,8 @@ import Stripe from "stripe";
 import { config } from "../../config";
 import { prisma } from "../../lib/prisma";
 import { stripe } from "../../lib/stripe";
+import { SubscriptionStatus } from "../../../generated/prisma/enums";
+import { handleChangeSubscription, handleCheckoutCompleted } from "./subscription.utils";
 
 const createCheckoutSession = async (userId: string) => {
   const transactionResult = await prisma.$transaction(async (tx) => {
@@ -67,9 +69,15 @@ const handleWebhook = async (payload: Buffer, signature: string) => {
       break;
     //Occurs whenever a subscription changes (e.g., switching from one plan to another, or changing the status from trial to active).
     case "customer.subscription.updated":
+      await handleChangeSubscription(event.data.object);
+      /*
+       to test this run this command on the terminal 
+       stripe subscription cancel <existing_subscription_id>
+      */
       break;
     //Occurs whenever a customer’s subscription ends.
     case "customer.subscription.deleted":
+      await handleChangeSubscription(event.data.object);
       break;
     default:
       // Unexpected event type
@@ -78,49 +86,7 @@ const handleWebhook = async (payload: Buffer, signature: string) => {
   }
 };
 
-const getPeriodEndDate = async (payload: Stripe.Subscription) => {
-  // const currentPeriodStart = stripeSubscription.items.data[0]?.current_period_start;
-  const currentPeriodEndInMilliseconds =
-    payload.items.data[0]?.current_period_end;
 
-  const currentPeriodEnd = new Date(currentPeriodEndInMilliseconds! * 1000);
-  return currentPeriodEnd;
-};
-
-const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
-  // console.log("Checkout session completed event received:", event.data.object);
-  // const session: Stripe.Checkout.Session = event.data.object;
-  const userId = session.metadata?.userId;
-  const stripeCustomerId = session.customer as string;
-  const stripeSubscriptionId = session.subscription as string;
-
-  if (!userId || !stripeCustomerId || !stripeSubscriptionId) {
-    throw new Error("Missing required data in the webhook event");
-  }
-
-  const stripeSubscription = await stripe.subscriptions.retrieve(
-    stripeSubscriptionId as string,
-  );
-
-  const currentPeriodEnd = await getPeriodEndDate(stripeSubscription);
-
-  await prisma.subscription.upsert({
-    where: { userId },
-    create: {
-      userId,
-      stripeCustomerId,
-      stripeSubscriptionId,
-      status: "ACTIVE",
-      currentPeriod: currentPeriodEnd,
-    },
-    update: {
-      stripeCustomerId,
-      stripeSubscriptionId,
-      status: "ACTIVE",
-      currentPeriod: currentPeriodEnd,
-    },
-  });
-};
 
 export const subscriptionService = {
   createCheckoutSession,
