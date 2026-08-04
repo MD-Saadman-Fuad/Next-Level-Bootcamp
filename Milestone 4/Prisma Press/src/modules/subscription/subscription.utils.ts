@@ -37,13 +37,13 @@ export const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) 
       stripeCustomerId,
       stripeSubscriptionId,
       status: "ACTIVE",
-      currentPeriod: currentPeriodEnd,
+      currentPeriodEnd: currentPeriodEnd,
     },
     update: {
       stripeCustomerId,
       stripeSubscriptionId,
       status: "ACTIVE",
-      currentPeriod: currentPeriodEnd,
+      currentPeriodEnd: currentPeriodEnd,
     },
   });
 };
@@ -74,7 +74,7 @@ export const handleChangeSubscription = async (payload: Stripe.Subscription) => 
     where: { stripeSubscriptionId: stripesubscriptionId },
     data: {
       status,
-      currentPeriodEnd,
+      currentPeriodEnd: await currentPeriodEnd,
     },
   });
 };
