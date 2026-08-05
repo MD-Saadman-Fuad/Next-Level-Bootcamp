@@ -7,14 +7,16 @@ import { premiumService } from "./premium.service";
 const getPremiumContent = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.user?.id;
+    const query = req.query;
 
-    const result = await premiumService.getPremiumContent();
+    const result = await premiumService.getPremiumContent(query);
 
     sendResponse(res, {
       success: true,
       success_code: httpStatus.OK,
         message: "Premium content retrieved successfully",
-        data: result,
+        data: result.data,
+        meta: result.meta,
     });
   },
 );

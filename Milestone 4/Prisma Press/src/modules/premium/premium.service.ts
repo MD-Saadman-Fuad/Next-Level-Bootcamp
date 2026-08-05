@@ -1,18 +1,84 @@
+import { PostWhereInput } from "../../../generated/prisma/models";
 import { prisma } from "../../lib/prisma";
+import { IPostQuery } from "../posts/post.interface";
 
+const getPremiumContent = async (query: IPostQuery) => {
+  const limit = query.limit ? Number(query.limit) : 10;
+  const page = query.page ? Number(query.page) : 1;
+  const skip = (page - 1) * limit;
+  const sortBy = query.sortBy ? query.sortBy : "createdAt";
+  const sortOrder = query.sortOrder ? query.sortOrder : "desc";
 
+  const tags = query.tags ? JSON.parse(query.tags as string) : null;
 
-const getPremiumContent = async () => {
-    const posts = await prisma.post.findMany({
-        where: {
-            isPremium: true,
-        }
-    })
+  const tagsArray = Array.isArray(tags) ? tags : [];
 
-    return posts;
-}
+  const andConditions: PostWhereInput[] = [];
 
+  if (query.searchterm) {
+    andConditions.push({
+      OR: [
+        {
+          title: {
+            contains: query.searchterm,
+            mode: "insensitive",
+          },
+        },
+        {
+          content: {
+            contains: query.searchterm,
+            mode: "insensitive",
+          },
+        },
+      ],
+    });
+  }
+  if (query.title) {
+    andConditions.push({
+      title: query.title,
+    });
+  }
+  if (query.content) {
+    andConditions.push({
+      content: query.content,
+    });
+  }
+  if (query.status) {
+    andConditions.push({
+      status: query.status,
+    });
+  }
+  if (query.tags) {
+    andConditions.push({
+      tags: {
+        hasSome: tagsArray,
+      },
+    });
+  }
+  andConditions.push({
+    isPremium: true,
+  });
+  const posts = await prisma.post.findMany({
+    where: {
+      AND: andConditions,
+    },
+  });
+  const totalPostCount = await prisma.post.count({
+    where: {
+      AND: andConditions,
+    },
+  });
 
+  return {
+    data: posts,
+    meta: {
+      page: page,
+      limit: limit,
+      total: totalPostCount,
+      totalPages: Math.ceil(totalPostCount / limit),
+    },
+  };
+};
 
 export const premiumService = {
   getPremiumContent,

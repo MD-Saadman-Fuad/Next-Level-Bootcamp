@@ -8,6 +8,17 @@ import {
 } from "./post.interface";
 
 const createPostInDB = async (payload: ICreatePostPayload, userId: string) => {
+  const post = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    include: {
+      subscription: true,
+    },
+  });
+  if (payload.isPremium && post.subscription?.status !== "ACTIVE") {
+    throw new Error(
+      "You are not subscribed to the premium content. Please subscribe to access this content.",
+    );
+  }
   const result = await prisma.post.create({
     data: {
       ...payload,
@@ -70,6 +81,10 @@ const getAllPostsFromDB = async (query: IPostQuery) => {
       },
     });
   }
+
+  andConditions.push({
+    isPremium: false,
+  });
 
   const posts = await prisma.post.findMany({
     //Filtering / exact match without AND operator
@@ -199,7 +214,21 @@ const getAllPostsFromDB = async (query: IPostQuery) => {
     },
   });
 
-  return posts;
+  const totalPostCount = await prisma.post.count({
+    where: {
+      AND: andConditions,
+    },
+  });
+
+  return {
+    data: posts,
+    meta: {
+      page: page,
+      limit: limit,
+      total: totalPostCount,
+      totalPages: Math.ceil(totalPostCount / limit),
+    },
+  };
 };
 
 const getPostByIdFromDB = async (postId: string) => {
@@ -207,6 +236,7 @@ const getPostByIdFromDB = async (postId: string) => {
     await tx.post.update({
       where: {
         id: postId,
+        isPremium: false,
       },
       data: {
         views: {
