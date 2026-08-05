@@ -109,10 +109,39 @@ const getSubscriptionStatus = async (userId: string) => {
     currentPeriodEnd: subscription.currentPeriodEnd,
   };
 };
- 
+
+const cancelSubscription = async (userId: string) => {
+  const subscription = await prisma.subscription.findUnique({
+    where: { userId },
+  });
+
+  if (!subscription) {
+    throw new Error("Subscription not found");
+  }
+
+  if (subscription.status === SubscriptionStatus.CANCELED) {
+    throw new Error("Subscription is already canceled");
+  }
+
+  await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
+
+  const updatedSubscription = await prisma.subscription.update({
+    where: { userId },
+    data: {
+      status: SubscriptionStatus.CANCELED,
+      currentPeriodEnd: new Date(),
+    },
+  });
+
+  return {
+    status: updatedSubscription.status,
+    currentPeriodEnd: updatedSubscription.currentPeriodEnd,
+  };
+};
 
 export const subscriptionService = {
   createCheckoutSession,
   handleWebhook,
   getSubscriptionStatus,
+  cancelSubscription,
 };

@@ -26,7 +26,10 @@ const handleWebhook = catchAsync(
     const signature = req.headers["stripe-signature"] as string;
 
     // const result = await subscriptionService.handleWebhook(event, signature);
-    await subscriptionService.handleWebhook(event as Buffer, signature as string);
+    await subscriptionService.handleWebhook(
+      event as Buffer,
+      signature as string,
+    );
 
     sendResponse(res, {
       success: true,
@@ -53,8 +56,25 @@ const getSubscriptionStatus = catchAsync(
   },
 );
 
+const cancelSubscription = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.id;
+    const result = await subscriptionService.cancelSubscription(
+      userId as string,
+    );
+
+    sendResponse(res, {
+      success: true,
+      success_code: httpStatus.OK,
+      message: "Subscription canceled successfully",
+      data: result,
+    });
+  },
+);
+
 export const subscriptionController = {
   createCheckoutSession,
   handleWebhook,
   getSubscriptionStatus,
+  cancelSubscription,
 };

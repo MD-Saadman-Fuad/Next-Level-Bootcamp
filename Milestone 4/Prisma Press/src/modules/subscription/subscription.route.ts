@@ -17,6 +17,13 @@ router.post(
   subscriptionController.handleWebhook,
 );
 
+//cancel subscription
+router.post(
+  "/cancel",
+  auth(Role.USER, Role.ADMIN, Role.AUTHOR),
+  subscriptionController.cancelSubscription,
+);
+
 router.get(
   "/status",
   auth(Role.USER, Role.ADMIN, Role.AUTHOR),

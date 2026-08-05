@@ -36,18 +36,18 @@ const getCommentByAuthorId = catchAsync(
   },
 );
 
-const getCommentByCommentId = catchAsync(
+const getCommentByPostId = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const commentId = req.params.commentId;
-    if (!commentId) {
-      throw new Error("Comment ID is required");
+    const postId = req.params.postId;
+    if (!postId) {
+      throw new Error("Post ID is required");
     }
-    const result = await commentService.getCommentById(commentId as string);
+    const result = await commentService.getCommentsByPostId(postId as string);
 
     sendResponse(res, {
       success: true,
       success_code: httpStatus.OK,
-      message: "Comment retrieved successfully",
+      message: "Comments retrieved successfully",
       data: result,
     });
   },
@@ -129,7 +129,7 @@ const deleteComment = catchAsync(
 export const commentController = {
   createComment,
   getCommentByAuthorId,
-  getCommentByCommentId,
+  getCommentByPostId,
   updateComment,
   moderateComment,
   deleteComment,
