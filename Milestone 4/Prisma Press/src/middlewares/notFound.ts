@@ -8,6 +8,6 @@ export const notFound = (req: Request, res: Response) => {
     path: req.originalUrl,
     date: Date(),
     message: "Route Not Found",
-    data: new Date().toISOString(),
+    data: null,
   });
 };
